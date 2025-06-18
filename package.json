@@ -1,6 +1,6 @@
 {
   "name": "melodi-observe-openai",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "scripts": {
@@ -25,7 +25,7 @@
   "description": "OpenAI SDK wrapper for automatic Melodi logging and observability",
   "repository": {
     "type": "git",
-    "url": "https://github.com/melodi-fyi/melodi-observe-openai"
+    "url": "git+https://github.com/melodi-fyi/melodi-observe-openai.git"
   },
   "bugs": {
     "url": "https://github.com/melodi-fyi/melodi-observe-openai/issues"
@@ -38,12 +38,13 @@
   ],
   "devDependencies": {
     "@types/node": "^24.0.3",
-    "typescript": "^5.8.3",
     "dotenv": "^16.5.0",
-    "openai": "^5.5.1"
+    "openai": "^5.5.1",
+    "typescript": "^5.8.3"
   },
   "dependencies": {
-    "axios": "^1.10.0"
+    "axios": "^1.10.0",
+    "melodi-observe-openai": "^0.0.4"
   },
   "peerDependencies": {
     "openai": ">=4.0.0"

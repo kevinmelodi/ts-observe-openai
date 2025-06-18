@@ -43,3 +43,8 @@ __pycache__/
 bug-report/
 
 *.tgz
+
+copilotkit-test/
+
+test-copilotkit-pattern.ts
+test-streaming-simple.js
