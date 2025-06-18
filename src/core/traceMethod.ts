@@ -11,7 +11,11 @@ import {
 
 let threadIdCounter = 0;
 
-function generateThreadId(): string {
+function generateThreadId(config?: MelodiConfig): string {
+  // Use sessionId if provided, otherwise generate a new thread ID
+  if (config?.sessionId) {
+    return config.sessionId;
+  }
   return `thread-${Date.now()}-${++threadIdCounter}`;
 }
 
@@ -38,7 +42,7 @@ export function withTracing<T extends (...args: any[]) => any>(
 function handleStreamingMethod(originalMethod: any, args: any[], config: MelodiConfig) {
   const melodiClient = config.parent?.client || MelodiSingleton.getInstance();
   
-  let threadId = generateThreadId();
+  let threadId = generateThreadId(config);
   let promptMessages: CreateMessageRequest[] = [];
   let model = 'unknown';
   let provider = 'openai';
@@ -116,7 +120,7 @@ function handleStreamingMethod(originalMethod: any, args: any[], config: MelodiC
 async function handleNonStreamingMethod(originalMethod: any, args: any[], config: MelodiConfig) {
   const melodiClient = config.parent?.client || MelodiSingleton.getInstance();
   
-  let threadId = generateThreadId();
+  let threadId = generateThreadId(config);
   let promptMessages: CreateMessageRequest[] = [];
   let model = 'unknown';
   let provider = 'openai';

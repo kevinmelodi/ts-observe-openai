@@ -1,6 +1,6 @@
 {
   "name": "melodi-observe-openai",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "scripts": {
@@ -43,8 +43,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "axios": "^1.10.0",
-    "melodi-observe-openai": "^0.0.4"
+    "axios": "^1.10.0"
   },
   "peerDependencies": {
     "openai": ">=4.0.0"
