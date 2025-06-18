@@ -80,6 +80,10 @@ All OpenAI API calls are automatically logged to Melodi, including:
 - Token usage
 - Errors and exceptions
 
+### Streaming Compatibility
+
+The package maintains full compatibility with streaming frameworks like CopilotKit by preserving the async iterator protocol (`Symbol.asyncIterator`) that these frameworks expect. Streaming responses work seamlessly while still providing complete observability.
+
 ### Streaming Support
 
 Streaming responses are fully supported and logged after completion:

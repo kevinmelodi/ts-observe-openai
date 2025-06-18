@@ -69,7 +69,7 @@ export function withTracing<T extends (...args: any[]) => any>(
       const response = await originalMethod(...args);
 
       if (isStreamingResponse(response)) {
-        return createStreamWrapper(response, threadId, promptMessages, melodiClient as MelodiClient, metadata);
+        return createObservableStream(response, threadId, promptMessages, melodiClient as MelodiClient, metadata);
       } else {
         const allMessages = transformOpenAIResponseToMelodi(response, promptMessages);
         
@@ -116,68 +116,102 @@ function isStreamingResponse(response: any): boolean {
   return response && typeof response[Symbol.asyncIterator] === 'function';
 }
 
-async function* createStreamWrapper(
-  stream: any,
+function createObservableStream(
+  originalStream: any,
   threadId: string,
   promptMessages: CreateMessageRequest[],
   melodiClient: MelodiClient,
   metadata: Record<string, string | number>
-): AsyncGenerator<any, void, unknown> {
-  const chunks: any[] = [];
+): any {
+  // Create a wrapper that preserves the original stream interface
+  // while adding observability
   let fullContent = '';
   let usage: any = null;
 
-  try {
-    for await (const chunk of stream) {
-      chunks.push(chunk);
-      yield chunk;
+  // Create an object that implements the async iterator protocol correctly
+  const observableStream = {
+    // Preserve all original properties and methods from the stream
+    ...originalStream,
+    
+    // Override the async iterator to add observability
+    async *[Symbol.asyncIterator]() {
+      try {
+        const iterator = originalStream[Symbol.asyncIterator]();
+        
+        while (true) {
+          const result = await iterator.next();
+          
+          if (result.done) {
+            // Stream is finished - log the complete response
+            try {
+              const responseMessage: CreateMessageRequest = {
+                externalId: `msg-${Date.now()}-response`,
+                role: 'assistant',
+                content: fullContent,
+              };
 
-      if (chunk.choices?.[0]?.delta?.content) {
-        fullContent += chunk.choices[0].delta.content;
-      }
+              const allMessages = [...promptMessages, responseMessage];
 
-      if (chunk.output_text_delta) {
-        fullContent += chunk.output_text_delta;
-      }
+              const updatedThread: CreateThreadRequest = {
+                externalId: threadId,
+                projectId: parseInt(process.env.MELODI_PROJECT_ID!),
+                messages: allMessages,
+                metadata: {
+                  ...metadata,
+                  prompt_tokens: usage?.prompt_tokens || 0,
+                  completion_tokens: usage?.completion_tokens || 0,
+                  total_tokens: usage?.total_tokens || 0,
+                },
+              };
 
-      if (chunk.usage) {
-        usage = chunk.usage;
+              await melodiClient.createOrUpdateThread(updatedThread);
+            } catch (logError) {
+              // Don't throw logging errors - just log them
+              console.error('Melodi observability error:', logError);
+            }
+            break;
+          }
+
+          // Extract data for observability
+          const chunk = result.value;
+          
+          if (chunk?.choices?.[0]?.delta?.content) {
+            fullContent += chunk.choices[0].delta.content;
+          }
+
+          if (chunk?.output_text_delta) {
+            fullContent += chunk.output_text_delta;
+          }
+
+          if (chunk?.usage) {
+            usage = chunk.usage;
+          }
+
+          // Yield the original chunk unchanged
+          yield chunk;
+        }
+      } catch (error) {
+        // Log error and re-throw to preserve original behavior
+        try {
+          const errorThread: CreateThreadRequest = {
+            externalId: threadId,
+            projectId: parseInt(process.env.MELODI_PROJECT_ID!),
+            messages: promptMessages,
+            metadata: {
+              ...metadata,
+              error: String(error),
+            },
+          };
+
+          await melodiClient.createOrUpdateThread(errorThread);
+        } catch (logError) {
+          console.error('Melodi observability error:', logError);
+        }
+        
+        throw error; // Re-throw the original error
       }
     }
+  };
 
-    const responseMessage: CreateMessageRequest = {
-      externalId: `msg-${Date.now()}-response`,
-      role: 'assistant',
-      content: fullContent,
-    };
-
-    const allMessages = [...promptMessages, responseMessage];
-
-    const updatedThread: CreateThreadRequest = {
-      externalId: threadId,
-      projectId: parseInt(process.env.MELODI_PROJECT_ID!),
-      messages: allMessages,
-      metadata: {
-        ...metadata,
-        prompt_tokens: usage?.prompt_tokens || 0,
-        completion_tokens: usage?.completion_tokens || 0,
-        total_tokens: usage?.total_tokens || 0,
-      },
-    };
-
-    await melodiClient.createOrUpdateThread(updatedThread);
-  } catch (error) {
-    const errorThread: CreateThreadRequest = {
-      externalId: threadId,
-      projectId: parseInt(process.env.MELODI_PROJECT_ID!),
-      messages: promptMessages,
-      metadata: {
-        ...metadata,
-        error: String(error),
-      },
-    };
-
-    await melodiClient.createOrUpdateThread(errorThread);
-    throw error;
-  }
+  return observableStream;
 } 
