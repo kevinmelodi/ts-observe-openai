@@ -2,7 +2,7 @@ import { CreateMessageRequest } from '../types';
 
 let messageIdCounter = 0;
 
-function generateMessageId(): string {
+export function generateMessageId(): string {
   return `msg-${Date.now()}-${++messageIdCounter}`;
 }
 
@@ -12,8 +12,9 @@ export function transformOpenAIMessagesToMelodi(messages: any[]): CreateMessageR
   }
 
   return messages.map(message => {
+    const providedId = message.externalId || message.id;
     const melodiMessage: CreateMessageRequest = {
-      externalId: generateMessageId(),
+      externalId: typeof providedId === 'string' ? providedId : generateMessageId(),
       role: message.role || 'user',
     };
 
@@ -72,7 +73,7 @@ export function transformResponsesAPIInputToMelodi(input: any): CreateMessageReq
       }
 
       return {
-        externalId: generateMessageId(),
+        externalId: (item.externalId || item.id || generateMessageId()),
         role: 'user',
         content: JSON.stringify(item),
       };
@@ -80,7 +81,7 @@ export function transformResponsesAPIInputToMelodi(input: any): CreateMessageReq
   }
 
   return [{
-    externalId: generateMessageId(),
+    externalId: (input.externalId || input.id || generateMessageId()),
     role: 'user',
     content: JSON.stringify(input),
   }];
@@ -92,8 +93,9 @@ export function transformOpenAIResponseToMelodi(response: any, existingMessages:
   if (response.choices && Array.isArray(response.choices)) {
     for (const choice of response.choices) {
       if (choice.message) {
+        const providedId = choice.message.externalId || choice.message.id;
         const message: CreateMessageRequest = {
-          externalId: generateMessageId(),
+          externalId: typeof providedId === 'string' ? providedId : generateMessageId(),
           role: choice.message.role || 'assistant',
         };
 
@@ -115,7 +117,7 @@ export function transformOpenAIResponseToMelodi(response: any, existingMessages:
 
   if (response.output_text) {
     allMessages.push({
-      externalId: generateMessageId(),
+      externalId: response.output_text_id || generateMessageId(),
       role: 'assistant',
       content: response.output_text,
     });

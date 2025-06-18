@@ -7,6 +7,7 @@ import {
   transformOpenAIResponseToMelodi,
   extractModelName,
   extractProvider,
+  generateMessageId,
 } from '../utils/openaiTransformers';
 
 let threadIdCounter = 0;
@@ -262,7 +263,7 @@ function createObservableStream(
                   setImmediate(async () => {
                     try {
                       const responseMessage: CreateMessageRequest = {
-                        externalId: `msg-${Date.now()}-response`,
+                        externalId: generateMessageId(),
                         role: 'assistant',
                         content: fullContent,
                       };
