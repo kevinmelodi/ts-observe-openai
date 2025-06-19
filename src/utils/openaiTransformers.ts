@@ -135,4 +135,16 @@ export function extractProvider(args: any, isAzure: boolean = false): string {
     return 'azure';
   }
   return 'openai';
+}
+
+export function deduplicateMessages(messages: CreateMessageRequest[]): CreateMessageRequest[] {
+  const seen = new Set<string>();
+  const unique: CreateMessageRequest[] = [];
+  for (const msg of messages) {
+    if (msg.externalId && !seen.has(msg.externalId)) {
+      seen.add(msg.externalId);
+      unique.push(msg);
+    }
+  }
+  return unique;
 } 

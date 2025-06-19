@@ -8,6 +8,7 @@ import {
   extractModelName,
   extractProvider,
   generateMessageId,
+  deduplicateMessages,
 } from '../utils/openaiTransformers';
 
 let threadIdCounter = 0;
@@ -79,7 +80,7 @@ function handleStreamingMethod(originalMethod: any, args: any[], config: MelodiC
     const initialThread: CreateThreadRequest = {
       externalId: threadId,
       projectId: parseInt(process.env.MELODI_PROJECT_ID || config.projectId || '0'),
-      messages: promptMessages,
+      messages: deduplicateMessages(promptMessages),
       metadata,
       externalUser: config.userId ? {
         externalId: config.userId,
@@ -156,7 +157,7 @@ async function handleNonStreamingMethod(originalMethod: any, args: any[], config
     const initialThread: CreateThreadRequest = {
       externalId: threadId,
       projectId: parseInt(process.env.MELODI_PROJECT_ID || config.projectId || '0'),
-      messages: promptMessages,
+      messages: deduplicateMessages(promptMessages),
       metadata,
       externalUser: config.userId ? {
         externalId: config.userId,
@@ -169,10 +170,12 @@ async function handleNonStreamingMethod(originalMethod: any, args: any[], config
 
     const allMessages = transformOpenAIResponseToMelodi(response, promptMessages);
     
+    const uniqueMessages = deduplicateMessages(allMessages);
+
     const updatedThread: CreateThreadRequest = {
       externalId: threadId,
       projectId: parseInt(process.env.MELODI_PROJECT_ID || config.projectId || '0'),
-      messages: allMessages,
+      messages: uniqueMessages,
       metadata: {
         ...metadata,
         prompt_tokens: response.usage?.prompt_tokens || 0,
@@ -269,11 +272,12 @@ function createObservableStream(
                       };
 
                       const allMessages = [...promptMessages, responseMessage];
+                      const uniqueMessages = deduplicateMessages(allMessages);
 
                       const updatedThread: CreateThreadRequest = {
                         externalId: threadId,
                         projectId: parseInt(process.env.MELODI_PROJECT_ID!),
-                        messages: allMessages,
+                        messages: uniqueMessages,
                         metadata: {
                           ...metadata,
                           prompt_tokens: usage?.prompt_tokens || 0,
