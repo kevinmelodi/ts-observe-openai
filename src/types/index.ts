@@ -9,6 +9,11 @@ export interface MelodiConfig {
   tags?: string[];
   parent?: MelodiTrace;
   apiContext?: string;
+  /**
+   * Enable verbose console logging from the wrapper. You can also enable logging via the
+   * environment variable `MELODI_DEBUG_LOG=1` (or "true").
+   */
+  debug?: boolean;
 }
 
 export interface MelodiTrace {

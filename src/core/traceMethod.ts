@@ -10,6 +10,7 @@ import {
   generateMessageId,
   deduplicateMessages,
 } from '../utils/openaiTransformers';
+import { debugLog } from '../utils/logger';
 
 let threadIdCounter = 0;
 
@@ -50,6 +51,8 @@ function handleStreamingMethod(originalMethod: any, args: any[], config: MelodiC
   let provider = 'openai';
   let metadata: Record<string, string | number> = {};
 
+  debugLog(config, '[stream] OpenAI call args:', args[0]);
+
   try {
     const methodArgs = args[0] || {};
     model = extractModelName(methodArgs);
@@ -75,6 +78,8 @@ function handleStreamingMethod(originalMethod: any, args: any[], config: MelodiC
     } else if (methodArgs.messages) {
       promptMessages = transformOpenAIMessagesToMelodi(methodArgs.messages);
     }
+
+    debugLog(config, '[stream] promptMessages (dedup):', deduplicateMessages(promptMessages));
 
     // Create initial thread asynchronously (fire-and-forget)
     const initialThread: CreateThreadRequest = {
@@ -128,6 +133,8 @@ async function handleNonStreamingMethod(originalMethod: any, args: any[], config
   let provider = 'openai';
   let metadata: Record<string, string | number> = {};
 
+  debugLog(config, '[non-stream] OpenAI call args:', args[0]);
+
   try {
     const methodArgs = args[0] || {};
     model = extractModelName(methodArgs);
@@ -153,6 +160,8 @@ async function handleNonStreamingMethod(originalMethod: any, args: any[], config
     } else if (methodArgs.messages) {
       promptMessages = transformOpenAIMessagesToMelodi(methodArgs.messages);
     }
+
+    debugLog(config, '[non-stream] promptMessages (dedup):', deduplicateMessages(promptMessages));
 
     const initialThread: CreateThreadRequest = {
       externalId: threadId,
